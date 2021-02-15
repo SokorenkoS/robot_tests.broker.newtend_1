@@ -105,6 +105,8 @@ Login
   ...      ${ARGUMENTS[0]} == username
   Wait Until Page Contains Element   ${locator.login_btn}   20
   Click Element   ${locator.login_btn}
+  Sleep     2
+  Wait Until Page Contains Element  ${locator.login}    10
   Click Element   ${locator.login}
   Input text   ${locator.login}      ${USERS.users['${ARGUMENTS[0]}'].login}
   Input text   ${locator.password}   ${USERS.users['${ARGUMENTS[0]}'].password}
@@ -128,7 +130,6 @@ Login
     ${plan_additionalClas_block}=   Get From Dictionary     ${ARGUMENTS[1].data}   additionalClassifications
     ${plan_classification_block}=   Get From Dictionary     ${ARGUMENTS[1].data}   classification
     ${plan_buyers_block}=   Get From Dictionary     ${ARGUMENTS[1].data}    buyers
-    ${plan_items_block}=    Get From Dictionary     ${ARGUMENTS[1].data}    items
     ${plan_tender_block}=   Get From Dictionary     ${ARGUMENTS[1].data}    tender
     ${plan_procurement_type}=   Get From Dictionary     ${plan_tender_block}    procurementMethodType
 
@@ -141,10 +142,10 @@ Login
     # ======== Filling the plan' fields ===============
     # Plan description
     Input Text   id=plan-description    ${plan_budget_block.description}
-    input Text   id=plan-notes          ${plan_budget_block.id}
+    Input Text   id=plan-notes          ${plan_budget_block.id}
 
     # Drop down operation
-    ${procedure_relations}=   Get Webelement     id=reason
+    ${procedure_relations}=      Get Webelement     id=reason
     Select From List by Value    ${procedure_relations}    ${plan_procurement_type}
 
     # Input Dates for Plannings
@@ -152,74 +153,117 @@ Login
     ${plan_end_date_raw}=       Get From Dictionary     ${plan_budget_block.period}   endDate
     ${plan_start_date}=         Get Substring     ${plan_start_date_raw}   0   10
     ${plan_end_date}=           Get Substring     ${plan_end_date_raw}   0   10
-    ${start_date_field}=        Get Webelements   id=input-date-plan-budget-period-startDate
+    ${start_date_field}=        Get Webelement   id=input-date-plan-budget-period-startDate
     Execute Javascript    window.document.getElementById('input-date-plan-budget-period-startDate').removeAttribute("readonly")
-    Input Text  ${start_date_field[0]}     ${plan_start_date}
-    ${end_date_field}=        Get Webelements   id=input-date-plan-budget-period-endDate
+    Input Text  ${start_date_field}     ${plan_start_date}
+    ${end_date_field}=        Get Webelement   id=input-date-plan-budget-period-endDate
     Execute Javascript    window.document.getElementById('input-date-plan-budget-period-endDate').removeAttribute("readonly")
-    Input Text  ${end_date_field[0]}     ${plan_end_date}
+    Input Text  ${end_date_field}     ${plan_end_date}
+    # Tender period field
+    ${tender_period_startDate_raw}=     Get From Dictionary     ${plan_tender_block.tenderPeriod}   startDate
+    ${tender_period_startDate}=         Get Substring   ${tender_period_startDate_raw}  0    10
+    Execute Javascript    window.document.getElementById('input-date-plan-tender-tenderPeriod-startDate').removeAttribute("readonly")
+    ${tender_period_startDate_field}=   Get Webelement  id=input-date-plan-tender-tenderPeriod-startDate
+    Input Text    ${tender_period_startDate_field}    ${tender_period_startDate}
+
+    # Fill the fields Budget_id, description and total budget
+    # Getting values
+    ${total_budget_amount}=       Get From Dictionary     ${plan_budget_block}   amount
+    ${total_budget_amountNet}=    Get From Dictionary     ${plan_budget_block}   amountNet
+    ${total_budget_currency}=     Get From Dictionary     ${plan_budget_block}   currency
+    # Converting Float into String
+    ${total_budget_amountNet_string}=   convert_budget    ${total_budget_amountNet}
+    # Filling the fields
+    Input Text  id=budget   ${total_budget_amountNet_string}
+    ${budget_currency_dropdown}=    Get Webelement  id=currency
+    Select From List By Label   ${budget_currency_dropdown}     ${total_budget_currency}
+    # Filling Plan-Id and name
+    ${planId}=    Get From Dictionary     ${plan_budget_block.project}    id
+    ${planName}=  Get From Dictionary     ${plan_budget_block.project}    name
+    Input Text  id=project-id       ${planId}
+    Input Text  id=project-name     ${planName}
 
     # ========== Budget description LOOP ==============
     # Getting Breakdowns
     ${breakdown_list}=   Get From Dictionary    ${plan_budget_block}    breakdown
-    ${list_len}=    Get Length   ${plan_budget_block.breakdown}
-    Log To Console      NUMBER OF BREAKDOWNS- ${list_len}
+    ${list_len}=         Get Length   ${plan_budget_block.breakdown}
+    Log To Console       NUMBER OF BREAKDOWNS- ${list_len}
     ${add_financer}=     Get Webelement   xpath=//button[@ng-click="addBreakDownField()"]
 
-    : FOR   ${INDEX}  IN RANGE   ${list_len}
-    \   ${br_description}=        Get From Dictionary     ${breakdown_list[${INDEX}]}     description
-    \   Log To Console  ${br_description}
-    \   Input Text   id=bd_item_description-${INDEX}   ${br_description}
-    \   Run Keyword If    ${INDEX} < ${list_len} - 1   add_financer_press
+    : FOR   ${INDEX}  IN RANGE    ${list_len}
+    \   ${br_description}=      Get From Dictionary     ${breakdown_list[${INDEX}]}   description
+    \   ${br_financing_type}=   Get From Dictionary     ${breakdown_list[${INDEX}]}   title
+    \   ${br_amountValue}=      Get from Dictionary     ${breakdown_list[${INDEX}]}   value
+    \   ${br_amount}=           Get from Dictionary     ${br_amountValue}   amount
+    \   ${br_amount_string}=    convert_budget          ${br_amount}
+    \   ${br_currency}=         Get from Dictionary     ${br_amountValue}   currency
+    \   Log To Console    ${br_description}
+    \   ${br_financingType_dropdown}=   Get Webelement      id=bd_item_title-${INDEX}
+    \   Select From List By Value       ${br_financingType_dropdown}    ${br_financing_type}
+    \   Input Text        id=bd_item_description-${INDEX}   ${br_description}
+    \   Input Text        id=bd_item_value_amount-${INDEX}  ${br_amount_string}
+    \   ${br_currency_dropdown}=    Get Webelement          id=bd_item_value_currency-${INDEX}
+    \   Select From List By Label   ${br_currency_dropdown}    ${br_currency}
+    \   Run Keyword If    ${INDEX} < ${list_len} - 1        add_financer_press
   # ==========================
-add_financer_press
-    # Adding one more financer inside Planning creation
-    ${add_financer}=     Get Webelement   xpath=//button[@ng-click="addBreakDownField()"]
-    Focus     ${add_financer}
-    Sleep     1
-    Click Element     ${add_financer}
-    Sleep     2
-
-#=====================Filling the general Budget input field=============================
-    #${plan_budget_block}=   Get From Dictionary   ${ARGUMENTS[1].data}   budget
-    #${plan_budget_general_value}=   Get From Dictionary   ${plan_budget_block}   amount
-    #Log To Console  ${plan_budget_general_value}
-    #Focus  id="budget"
-    #Click Element   id="budget"
-    #Input text  ${plan_budget_general_value}    id="budget"
-#=====Selecting the currency of general Budget From Drop Down
-   #\   ${lot_relations}=   Run Keyword If    '${procurementMethodType}'   Get Webelements     xpath=//select[@ng-model="item.relatedLot"]
-   #\   Sleep     2
-   #\   Run Keyword If  '${procurementMethodType}'  Select From List by Label    ${lot_relations[-1]}    ${lots_descr}
-
-
 
   # ========= Filling the Classificators ===========================================================
   # DK (open etc)
-    Focus   xpath=//*[@id="classifierCPV"]
-    Click Element   xpath=//*[@id="classifierCPV"]
+    Focus           id=classifierCPV
+    Click Element   id=classifierCPV
     Sleep   2
-    Click Element   xpath=//*[@id="classifier-search-field"]
-    #Input Text (тут нужно выбрать тот классификатор, который прилетает - но хз как это сделать пока...)
-    Click Element   xpath=//*[@id="select-classifier-btn"]
-    #xpath=//field[@ng-click="openClassifier('cpv', null)"]
-    #ng-click="openClassifier('cpv', null)"
-  # DKPP (open etc)
-    Focus   xpath=//*[@id="classifierDKPP"]
-    Click Element   xpath=//*[@id="classifierDKPP"]
-    Sleep   2
-    Click Element   xpath=//*[@id="classifier-search-field"]
-    #Input Text (тут нужно выбрать тот классификатор DKPP, который прилетает - но хз как это сделать пока...)
-    Click Element   xpath=//*[@id="select-classifier-btn"]
-    #Click Element   id="classifierDKPP"
-  # KEKV (open ets)
-    Focus   xpath=//*[@id="classifierKEKV"]
-    Click Element   xpath=//*[@id="classifierKEKV"]
-    Sleep   2
-    Click Element   xpath=//*[@id="classifier-search-field"]
-    #Input Text (тут нужно выбрать тот классификатор DKPP, который прилетает - но хз как это сделать пока...)
-    Click Element   xpath=//*[@id="select-classifier-btn"]
-    #Click Element   id="classifierKEKV"
+    ${classifierCPV_id}=    Get From Dictionary     ${plan_classification_block}    id
+    set_dk_dkpp     ${classifierCPV_id}
+
+    # :TODO UNCOMMENT WHEN ALL CLASSIFICATORS WILL WORK
+    # DKPP (open etc)
+#    Click Element   id=classifierDKPP
+#    Sleep   2
+#    ${list_additionaClass}=     Get Length  ${plan_additionalClas_block}
+#    Sleep   2
+#    :FOR    ${I}   IN RANGE   ${list_additionaClass}
+#    \   ${additional_classifierId}=     Get From Dictionary   ${plan_additionalClas_block[${I}]}  id
+#    \   set_dk_dkpp     ${additional_classifierId}
+
+    # Adding Items into Plan
+    ${plan_items_block}=         Get From Dictionary   ${ARGUMENTS[1].data}   items
+    ${items_len}=   Get Length  ${plan_items_block}
+    :FOR   ${I}   IN RANGE  ${items_len}
+    \   ${plan_item_description}=    Get From Dictionary   ${plan_items_block[${I}]}    description
+    \   ${plan_item_quantity_raw}=   Get From Dictionary   ${plan_items_block[${I}]}    quantity
+    \   ${plan_item_quantity_string}=   convert_budget     ${plan_item_quantity_raw}
+    \   ${plan_item_unit}=        Get From Dictionary      ${plan_items_block[${I}].unit}  name
+    \   ${plan_itemUnit_normal}=    key_by_value  ${plan_item_unit}
+    \   ${add_item_btn}=          Get Webelement  xpath=//button[@ng-click="addField()"]
+    \   Focus    ${add_item_btn}
+    \   Click Element    ${add_item_btn}
+    \   Sleep    1
+    \   Input Text  id=itemDescription0      ${plan_item_description}
+    \   Input Text  id=quantity0             ${plan_item_quantity_string}
+    \   ${measure_list}=    Get Webelement   id=measure-list
+    \   Click Element       ${measure_list}
+    \   ${measure_name}=    Get Webelements   xpath=//a[@id="measure-list"]/..//a[contains(text(), '${plan_itemUnit_normal}')]
+    \   Click Element       ${measure_name[-1]}
+    \   Sleep     1
+    # Item classifiers
+    \   ${item_dk_value}=   Get From Dictionary     ${plan_items_block[${I}].classification}   id
+    \   Focus       id=classifier1${I}
+    \   Click Element       id=classifier1${I}
+    \   set_dk_dkpp         ${item_dk_value}
+    \   Sleep   1
+    # :todo UNCOMMENT WHEN ALL CLASSIFICATORS WILL WORK
+#    \   ${item_dkpp_value_list}=   Get From Dictionary     ${plan_items_block[${I}]}   additionalClassifications
+#    \   ${item_dkpp_value}=        Get From Dictionary     ${item_dkpp_value_list[0]}  id
+#    \   Focus   id=classifier2${I}
+#    \   Click Element   id=classifier2${I}
+#    \   set_dk_dkpp     ${item_dkpp_value}
+#    \   Sleep   1
+    \   ${item_deliveryDate}=         Get From Dictionary     ${plan_items_block[${I}].deliveryDate}   endDate
+    \   ${item_deliveryEndDate}=      Get Substring   ${item_deliveryDate}  0    10
+    \   ${item_deliveryDate_field}=   Get Webelement  id=start-date-delivery${I}
+    \   Execute Javascript    window.document.getElementById('start-date-delivery${I}').removeAttribute("readonly")
+    \   Input Text    ${item_deliveryDate_field}    ${item_deliveryEndDate}
+
 
   # ========= Click on the "Publish" button ========================================================
     #${publish_plan}=     Get Webelement   xpath=//button[@ng-click="publish(plan)"]
@@ -228,6 +272,29 @@ add_financer_press
     #Click Element     ${publish_plan}
     #Sleep     2
 #====================================== End of Створити план =========================================
+
+add_financer_press
+    # Adding one more financer inside Planning creation
+    ${add_financer}=     Get Webelement   xpath=//button[@ng-click="addBreakDownField()"]
+    Focus     ${add_financer}
+    Sleep     1
+    Click Element     ${add_financer}
+    Sleep     2
+
+set_dk_dkpp
+  [Arguments]   ${dk_dkpp_id}
+  [Documentation]   plan owner role
+  ...       ${dk_dkpp_id} == DK_Id
+  Log To Console    We send to search DK ID - ${dk_dkpp_id}
+  Sleep     1
+  Click Element   xpath=//*[@id="classifier-search-field"]
+  Input Text      id=classifier-search-field  ${dk_dkpp_id}
+  Wait Until Page Contains Element   xpath=//span[contains(text(),'${dk_dkpp_id}')]   20
+  Sleep     2
+  Click Element                      xpath=//input[@ng-change="chooseClassificator(item)"]
+  Sleep     1
+  Click Element                      id=select-classifier-btn
+  Sleep   3
 
 Створити тендер
   [Arguments]  @{ARGUMENTS}
