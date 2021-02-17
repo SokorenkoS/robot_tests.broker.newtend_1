@@ -273,6 +273,9 @@ Login
 
     Click Element     id=submit-btn
 
+    ${tender_uaid}=  get text  id=planID
+    [Return]  ${tender_uaid}
+
   # ========= Click on the "Publish" button ========================================================
     #${publish_plan}=     Get Webelement   xpath=//button[@ng-click="publish(plan)"]
     #Focus     ${publish_plan}
@@ -304,7 +307,23 @@ set_dk_dkpp
   Click Element                      id=select-classifier-btn
   Sleep   3
 
+
 Оновити сторінку з планом
+  [Arguments]   ${username}    ${tender_uaid}
+  Reload Page
+
+Пошук плану по ідентифікатору
+  [Arguments]  ${username}  ${tender_uaid}
+  Click Element     id="main-menu"
+  Click Element     id="all-plans-menu"
+  Mouse Over        id="all-plans-menu"
+  Click Element     id="menu_container_1"
+  Wait Until Page Contains Element    id="input_13"
+  Click Element     id="input_13"
+  Input Text        id="input_13"   ${tender_uaid}
+  Click Element     xpath=//input[@ng-click="search()"]
+
+
 
 Створити тендер
   [Arguments]  @{ARGUMENTS}
