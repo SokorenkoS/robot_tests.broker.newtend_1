@@ -1,5 +1,5 @@
 *** Settings ***
-Library  Selenium2Screenshots
+#Library  Selenium2Screenshots
 Library  String
 Library  DateTime
 Library  newtend_service.py
@@ -155,16 +155,19 @@ Login
     ${plan_end_date}=           Get Substring     ${plan_end_date_raw}   0   10
     ${start_date_field}=        Get Webelement   id=input-date-plan-budget-period-startDate
     Execute Javascript    window.document.getElementById('input-date-plan-budget-period-startDate').removeAttribute("readonly")
-    Input Text  ${start_date_field}     ${plan_start_date}
+#    Input Text  ${start_date_field}     ${plan_start_date}
+    Input Text  ${start_date_field}     2021
     ${end_date_field}=        Get Webelement   id=input-date-plan-budget-period-endDate
     Execute Javascript    window.document.getElementById('input-date-plan-budget-period-endDate').removeAttribute("readonly")
-    Input Text  ${end_date_field}     ${plan_end_date}
+    Input Text  ${end_date_field}     2021
+#    Input Text  ${end_date_field}     ${plan_end_date}
     # Tender period field
     ${tender_period_startDate_raw}=     Get From Dictionary     ${plan_tender_block.tenderPeriod}   startDate
     ${tender_period_startDate}=         Get Substring   ${tender_period_startDate_raw}  0    10
     Execute Javascript    window.document.getElementById('input-date-plan-tender-tenderPeriod-startDate').removeAttribute("readonly")
     ${tender_period_startDate_field}=   Get Webelement  id=input-date-plan-tender-tenderPeriod-startDate
-    Input Text    ${tender_period_startDate_field}    ${tender_period_startDate}
+    Input Text    ${tender_period_startDate_field}    2021-02
+#    Input Text    ${tender_period_startDate_field}    ${tender_period_startDate}
 
     # Fill the fields Budget_id, description and total budget
     # Getting values
@@ -172,9 +175,12 @@ Login
     ${total_budget_amountNet}=    Get From Dictionary     ${plan_budget_block}   amountNet
     ${total_budget_currency}=     Get From Dictionary     ${plan_budget_block}   currency
     # Converting Float into String
-    ${total_budget_amountNet_string}=   convert_budget    ${total_budget_amountNet}
+#    ${total_budget_amountNet_string}=   convert_budget    ${total_budget_amountNet}
     # Filling the fields
-    Input Text  id=budget   ${total_budget_amountNet_string}
+#    Input Text  id=budget   ${total_budget_amountNet_string}
+    ${total_budget_amount_string}=   convert_budget    ${total_budget_amount}
+    # Filling the fields
+    Input Text  id=budget   ${total_budget_amount_string}
     ${budget_currency_dropdown}=    Get Webelement  id=currency
     Select From List By Label   ${budget_currency_dropdown}     ${total_budget_currency}
     # Filling Plan-Id and name
@@ -204,6 +210,7 @@ Login
     \   Input Text        id=bd_item_value_amount-${INDEX}  ${br_amount_string}
     \   ${br_currency_dropdown}=    Get Webelement          id=bd_item_value_currency-${INDEX}
     \   Select From List By Label   ${br_currency_dropdown}    ${br_currency}
+    \   capture page screenshot
     \   Run Keyword If    ${INDEX} < ${list_len} - 1        add_financer_press
   # ==========================
 
@@ -264,6 +271,10 @@ Login
     \   Execute Javascript    window.document.getElementById('start-date-delivery${I}').removeAttribute("readonly")
     \   Input Text    ${item_deliveryDate_field}    ${item_deliveryEndDate}
 
+    Click Element     id=submit-btn
+
+    ${tender_uaid}=  get text  id=planID
+    [Return]  ${tender_uaid}
 
   # ========= Click on the "Publish" button ========================================================
     #${publish_plan}=     Get Webelement   xpath=//button[@ng-click="publish(plan)"]
@@ -295,6 +306,24 @@ set_dk_dkpp
   Sleep     1
   Click Element                      id=select-classifier-btn
   Sleep   3
+
+
+Оновити сторінку з планом
+  [Arguments]   ${username}    ${tender_uaid}
+  Reload Page
+
+Пошук плану по ідентифікатору
+  [Arguments]  ${username}  ${tender_uaid}
+  Click Element     id="main-menu"
+  Click Element     id="all-plans-menu"
+  Mouse Over        id="all-plans-menu"
+  Click Element     id="menu_container_1"
+  Wait Until Page Contains Element    id="input_13"
+  Click Element     id="input_13"
+  Input Text        id="input_13"   ${tender_uaid}
+  Click Element     xpath=//input[@ng-click="search()"]
+
+
 
 Створити тендер
   [Arguments]  @{ARGUMENTS}
