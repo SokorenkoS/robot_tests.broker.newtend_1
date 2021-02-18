@@ -98,6 +98,10 @@ ${locator.view.procuringEntity.name}    xpath=//div[@class="block-info__text blo
   Set Window Size       @{USERS.users['${ARGUMENTS[0]}'].size}
   Set Window Position   @{USERS.users['${ARGUMENTS[0]}'].position}
   Run Keyword If       '${ARGUMENTS[0]}' != 'Newtend_Viewer'   Login    ${ARGUMENTS[0]}
+  # Change Language to Ukr in the UI
+  Click Element     xpath=//a[@ng-click="vm.setLanguage('uk')"]
+  Sleep     3
+
 
 Login
   [ARGUMENTS]   @{ARGUMENTS}
@@ -135,9 +139,11 @@ Login
 
     Log To Console   ${plan_budget_block}
     # === Navigate into Plan' creat part ===
-    Click Element   id=create-menu
-    Sleep   1
-    Click Element   xpath=//a[@href="/opc/provider/plans/create"]
+#    Click Element   id=create-menu
+#    Sleep   1
+#    Click Element   xpath=//a[@href="/opc/provider/plans/create"]
+    Go To   https://dev23.newtend.com/opc/provider/plans/create
+    Wait Until Page Contains Element    id=plan-description     5
 
     # ======== Filling the plan' fields ===============
     # Plan description
@@ -240,7 +246,7 @@ Login
     \   ${plan_item_quantity_raw}=   Get From Dictionary   ${plan_items_block[${I}]}    quantity
     \   ${plan_item_quantity_string}=   convert_budget     ${plan_item_quantity_raw}
     \   ${plan_item_unit}=        Get From Dictionary      ${plan_items_block[${I}].unit}  name
-    \   ${plan_itemUnit_normal}=    key_by_value  ${plan_item_unit}
+#    \   ${plan_itemUnit_normal}=    key_by_value  ${plan_item_unit}
     \   ${add_item_btn}=          Get Webelement  xpath=//button[@ng-click="addField()"]
     \   Focus    ${add_item_btn}
     \   Click Element    ${add_item_btn}
@@ -249,7 +255,7 @@ Login
     \   Input Text  id=quantity0             ${plan_item_quantity_string}
     \   ${measure_list}=    Get Webelement   id=measure-list
     \   Click Element       ${measure_list}
-    \   ${measure_name}=    Get Webelements   xpath=//a[@id="measure-list"]/..//a[contains(text(), '${plan_itemUnit_normal}')]
+    \   ${measure_name}=    Get Webelements   xpath=//a[@id="measure-list"]/..//a[contains(text(), '${plan_item_unit}')]
     \   Click Element       ${measure_name[-1]}
     \   Sleep     1
     # Item classifiers
@@ -273,7 +279,9 @@ Login
 
     Click Element     id=submit-btn
 
-    ${tender_uaid}=  get text  id=planID
+    Wait Until Page Contains Element    id=planID   10
+
+    ${tender_uaid}=   Get Text  id=planID
     [Return]  ${tender_uaid}
 
   # ========= Click on the "Publish" button ========================================================
@@ -314,14 +322,65 @@ set_dk_dkpp
 
 Пошук плану по ідентифікатору
   [Arguments]  ${username}  ${tender_uaid}
-  Click Element     id="main-menu"
-  Click Element     id="all-plans-menu"
-  Mouse Over        id="all-plans-menu"
-  Click Element     id="menu_container_1"
-  Wait Until Page Contains Element    id="input_13"
-  Click Element     id="input_13"
-  Input Text        id="input_13"   ${tender_uaid}
-  Click Element     xpath=//input[@ng-click="search()"]
+  Go To     https://dev23.newtend.com/opc/provider/plans/all/?pageNum=1&query=&status=&procurementMethodType=&amount_gte=&amount_lte=&createReport=&create_gte=&create_lte=&tp_gte=&tp_lte=
+#  Click Element     id="main-menu"
+#  Click Element     id="all-plans-menu"
+#  Mouse Over        id="all-plans-menu"
+#  Click Element     id="menu_container_1"
+#  Wait Until Page Contains Element    id="input_13"  <--- This element has dynamic ID
+  Wait Until Page Contains Element    xpath=//input[@ng-model="searchData.query"]   10
+  ${search_field}=  Get Webelement    xpath=//input[@ng-model="searchData.query"]
+  Click Element     ${search_field}
+  Input Text        ${search_field}   ${tender_uaid}
+  Click Element     xpath=//button[@ng-click="search()"]
+  Wait Until Page Contains Element    xpath=//a[@class="row tender-info ng-scope"]    10
+  ${plan_raw}=  Get Webelement   xpath=//a[@class="row tender-info ng-scope"]/..//span[contains(text(), '${tender_uaid}')]
+  Click Element     ${plan_raw}
+
+
+Отримати інформацію із плану
+  [Arguments]   @{ARGUMENTS}
+  [Documentation]   Roles: seems for all roles
+  ...       ${ARGUMENTS[0]} == user_role
+  ...       ${ARGUMENTS[1]} == plan_uaid
+  ...       ${ARGUMENTS[1]} == field_name
+  Log To Console    Arg0 - ${ARGUMENTS[0]}
+  Log To Console    Arg1 - ${ARGUMENTS[1]}
+  Log To Console    Arg2 - ${ARGUMENTS[2]}
+  Run Keyword And Return  Отримати Планову інформацію про ${ARGUMENTS[2]}
+
+Отримати Планову інформацію про status
+  ${plan_status_raw}=   Get Text   xpath=//span[@class="status ng-binding"]
+  ${plan_status}=   convert_to_newtend_normal   ${plan_status_raw}
+  [Return]     ${plan_status}
+
+
+Внести зміни в план
+  [Arguments]   @{ARGUMENTS}
+  [Documentation]   For tender_owner role
+  ...       ${ARGUMENTS[0]} ==  user_role
+  ...       ${ARGUMENTS[1]} ==  plan_uaid
+  ...       ${ARGUMENTS[2]} ==  field_name
+  ...       ${ARGUMENTS[3]} ==  field_value
+  Log To Console   Arg0 - ${ARGUMENTS[0]}
+  Log To Console   Arg1 - ${ARGUMENTS[1]}
+  Log To Console   Arg2 - ${ARGUMENTS[2]}
+  Log To Console   Arg3 - ${ARGUMENTS[3]}
+  # Searching for necessary Plan
+  Go To     https://dev23.newtend.com/opc/provider/plans/all/?pageNum=1&query=${ARGUMENTS[1]}&status=&procurementMethodType=&amount_gte=&amount_lte=&createReport=&create_gte=&create_lte=&tp_gte=&tp_lte=
+  Wait Until Page Contains Element    xpath=//a[@class="row tender-info ng-scope"]    10
+  ${plan_raw}=  Get Webelement   xpath=//a[@class="row tender-info ng-scope"]/..//span[contains(text(), '${ARGUMENTS[1]}')]
+  Click Element     ${plan_raw}
+  Sleep     1
+  Run Key Word And Return   Змінити в плані поле ${ARGUMENTS[2]} і зберегти     ${ARGUMENTS[3]}
+
+Змінити в плані поле budget.description і зберегти
+  [Arguments]   ${field_description}
+  Log To Console    We are working on this process!
+
+Змінити в плані поле budget.amount і зберегти
+  [Arguments]   ${field_description}
+  Log To Console    We are working on this process!
 
 
 
@@ -917,7 +976,7 @@ Set DKPP
   ...      ${ARGUMENTS[0]} ==  user_name
   ...      ${ARGUMENTS[1]} ==  tender_uaid
   ...      ${ARGUMENTS[2]} ==  field_number     # like 'l-c24ec571'
-  ...      ${ARGUMENTS[2]} ==  field_name
+  ...      ${ARGUMENTS[3]} ==  field_name
   Log to console    arg0 - ${ARGUMENTS[0]}
   Log to console    arg1 - ${ARGUMENTS[1]}
   Log to console    arg2 - ${ARGUMENTS[2]}
@@ -998,6 +1057,11 @@ Set DKPP
 отримати інформацію про tenderId
   ${tenderId}=   отримати текст із поля і показати на сторінці   tenderId
   [Return]  ${tenderId}
+
+Отримати інформацію про budget.amount
+  ${budget_amount_raw}=   Get Text  xpath=//div[@ng-bind="plan.budget.amount"]
+  ${budget_amount}=     Convert To Number   ${budget_amount_raw}
+  [Return]  ${budget_amount}
 
 отримати інформацію про value.amount
   ${valueAmount}=   отримати текст із поля і показати на сторінці   view_value_amount

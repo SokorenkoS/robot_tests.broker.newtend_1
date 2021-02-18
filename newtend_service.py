@@ -31,6 +31,7 @@ def convert_budget(budget):
 # Converting data from tendering place into CDB common values
 def convert_to_newtend_normal(string):
     return {
+        u'ЗАПЛАНОВАНИЙ': 'scheduled',
         u'(Предложение принято)': u'active',
         u'Active purchase': u'pending',
         u'ACTIVE PURCHASE': u'pending',
