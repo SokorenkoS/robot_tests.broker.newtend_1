@@ -28,6 +28,11 @@ def convert_budget(budget):
     return budget_convertion
 
 
+def convert_quantity(quantity):
+    quantity_convertion = format(quantity, '.3f')
+    return quantity_convertion
+
+
 # Converting data from tendering place into CDB common values
 def convert_to_newtend_normal(string):
     return {
