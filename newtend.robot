@@ -468,7 +468,11 @@ set_dk_dkpp
   Додати предмет   ${ARGUMENTS[1]}
 
   Run Keyword If   '${procurementMethodType}' in ['belowThreshold']   Click Element     id=with-nds
-
+  # Filling the Main Procurement category
+  ${procurementCategory}=           Run Keyword If   '${procurementMethodType}' in ['belowThreshold']   Get From Dictionary   ${ARGUMENTS[1].data}   mainProcurementCategory
+  ${procurementCategory_field}=     Run Keyword If   '${procurementMethodType}' in ['belowThreshold']   Get Webelement        id=mainProcurementCategory
+  ${procurementCategory_click}=     Run Keyword If   '${procurementMethodType}' in ['belowThreshold']   Click Element         ${procurementCategory_field}
+  ${procurementCategory_select}=    Run Keyword If   '${procurementMethodType}' in ['belowThreshold']   Select From List By Value   ${procurementCategory}
 
 #  Run Keyword If    '${TENDER_MEAT}' != 'False'    Add meats to tender   ${ARGUMENTS[1]}
 #  Run Keyword If    '${LOT_MEAT}' != 'False'       Add meats to lot      ${ARGUMENTS[1]}
@@ -482,7 +486,7 @@ set_dk_dkpp
 # Removing READONLY attribute from datepicker field
   Run Keyword If   '${procurementMethodType}' in ['belowThreshold', 'defense', 'aboveThresholdEU', 'aboveThresholdUA']   Execute Javascript    window.document.getElementById('end-date-registration').removeAttribute("readonly")
   Run Keyword If   '${procurementMethodType}' in ['belowThreshold', 'defense', 'aboveThresholdEU', 'aboveThresholdUA']   Input Text    xpath=//input[@id="end-date-registration"]     ${tenderingEnd_date_date}
-  ${tenderingEnd_date_hours}=   Run Keyword If    '${procurementMethodType}' in ['belowThreshold', 'defense', 'aboveThresholdEU', 'aboveThresholdUA']   Get Webelements   xpath=//table[@ng-model="tender.tenderPeriod.endDate"]/.//input[@ng-change="updateHours()"]
+  ${tenderingEnd_date_hours}=    Run Keyword If    '${procurementMethodType}' in ['belowThreshold', 'defense', 'aboveThresholdEU', 'aboveThresholdUA']   Get Webelements   xpath=//table[@ng-model="tender.tenderPeriod.endDate"]/.//input[@ng-change="updateHours()"]
   Run Keyword If   '${procurementMethodType}' in ['belowThreshold', 'defense', 'aboveThresholdEU', 'aboveThresholdUA']   Input Text    ${tenderingEnd_date_hours[-1]}       ${tenderingEnd_hours}
   ${tenderingEnd_date_minutes}=  Run Keyword If    '${procurementMethodType}' in ['belowThreshold', 'defense', 'aboveThresholdEU', 'aboveThresholdUA']  Get Webelements   xpath=//table[@ng-model="tender.tenderPeriod.endDate"]/.//input[@ng-change="updateMinutes()"]
   Run Keyword If   '${procurementMethodType}' in ['belowThreshold', 'defense', 'aboveThresholdEU', 'aboveThresholdUA']   Input Text    ${tenderingEnd_date_minutes[-1]}     ${tenderingEnd_minutes}
@@ -676,10 +680,11 @@ Lot Dict
 # Set DKPP
   \   Run Keyword If   '${classification_id}' == '99999999-9'    Set DKPP      ${add_classification_id}
 # Set Delivery Address
-  \   Focus                 xpath=//input[contains(@id, 'deliveryAddress-')]
-  \   Click Element         xpath=//input[contains(@id, 'deliveryAddress-')]
-  \   Wait Until Page Contains Element      xpath=//md-radio-button[@aria-label="Відповідно до документації"]   4
-  \   Click Element                         xpath=//md-radio-button[@aria-label="Відповідно до документації"]
+  \   Fill The Delivery Fields  ${deliveryaddress_countryname}  ${deliveryaddress_postalcode}  ${deliveryaddress_region}   ${deliveryaddress_locality}   ${deliveryaddress_streetaddress}
+#  \   Focus                 xpath=//input[contains(@id, 'deliveryAddress-')]
+#  \   Click Element         xpath=//input[contains(@id, 'deliveryAddress-')]
+#  \   Wait Until Page Contains Element      xpath=//md-radio-button[@aria-label="Відповідно до документації"]   4
+#  \   Click Element                         xpath=//md-radio-button[@aria-label="Відповідно до документації"]
 #  \   Click Element                      id=deliveryAddress${INDEX}
 #  \   Wait Until Page Contains Element   xpath=//input[@name="postal-code"]   20
 #  \   Sleep     2
@@ -689,45 +694,48 @@ Lot Dict
 #  \   Input Text                         xpath=//input[@name="company-city"]      ${deliveryaddress_locality}
 #  \   Input Text                         xpath=//input[@name="street_address"]    ${deliveryaddress_streetaddress}
 #  \   Sleep     2
-  \   Click Element                      xpath=//button[@ng-click="vm.save()"]
-  \   Sleep     4
+#  \   Click Element                      xpath=//button[@ng-click="vm.save()"]
+#  \   Sleep     4
 # Selecting Item's relation to LOT From Drop Down
   \   ${lot_relations}=   Run Keyword If    '${procurementMethodType}' in ['defense', 'aboveThresholdEU', 'aboveThresholdUA']   Get Webelements     xpath=//select[@ng-model="item.relatedLot"]
   \   Sleep     2
   \   Run Keyword If  '${procurementMethodType}' in ['defense', 'aboveThresholdEU', 'aboveThresholdUA']  Select From List by Label    ${lot_relations[-1]}    ${lots_descr}
 
+# :TODO Uncomment when IDs will be fixed
 #Delivery Start date block
-  \   ${start_date_date}=  Get Substring   ${deliverydate_start_date}   0    10
-  \   ${hours}=            Get Substring   ${deliverydate_start_date}   11   13
-  \   ${minutes}=          Get Substring   ${deliverydate_start_date}   14   16
-# Removing READONLY attribute from datepicker field
-  \   Execute Javascript    window.document.getElementById('start-date-delivery${INDEX}').removeAttribute("readonly")
-  \   Input Text    xpath=//input[@id="start-date-delivery${INDEX}"]     ${start_date_date}
-  \   ${start_date_hours}=      Get Webelements   xpath=//table[@ng-model="item.deliveryDate.startDate"]/.//input[@ng-change="updateHours()"]
-  \   Input Text    ${start_date_hours[-1]}       ${hours}
-  \   ${start_date_minutes}=    Get Webelements   xpath=//table[@ng-model="item.deliveryDate.startDate"]/.//input[@ng-change="updateMinutes()"]
-  \   Input Text    ${start_date_minutes[-1]}     ${minutes}
-  \   Sleep     2
+#  \   ${start_date_date}=  Get Substring   ${deliverydate_start_date}   0    10
+#  \   ${hours}=            Get Substring   ${deliverydate_start_date}   11   13
+#  \   ${minutes}=          Get Substring   ${deliverydate_start_date}   14   16
+## Removing READONLY attribute from datepicker field
+#  \   Execute Javascript    window.document.getElementById('start-date-delivery${INDEX}').removeAttribute("readonly")
+#  \   Input Text    xpath=//input[@id="start-date-delivery${INDEX}"]     ${start_date_date}
+#  \   ${start_date_hours}=      Get Webelements   xpath=//table[@ng-model="item.deliveryDate.startDate"]/.//input[@ng-change="updateHours()"]
+#  \   Input Text    ${start_date_hours[-1]}       ${hours}
+#  \   ${start_date_minutes}=    Get Webelements   xpath=//table[@ng-model="item.deliveryDate.startDate"]/.//input[@ng-change="updateMinutes()"]
+#  \   Input Text    ${start_date_minutes[-1]}     ${minutes}
+#  \   Sleep     2
 
 # Delivery End date block
   \   ${end_date_date}=     Get Substring   ${deliverydate_end_date}   0    10
   \   ${end_hours}=         Get Substring   ${deliverydate_end_date}   11   13
   \   ${end_minutes}=       Get Substring   ${deliverydate_end_date}   14   16
+  \   Log To Console    date - ${end_date_date}, hour - ${end_hours}, minutes - ${end_minutes}
 # Removing READONLY attribute from datepicker field
-  \   Execute Javascript    window.document.getElementById('end-date-delivery${INDEX}').removeAttribute("readonly")
-  \   Input Text    xpath=//input[@id="end-date-delivery${INDEX}"]     ${end_date_date}
-  \   ${end_date_hours}=      Get Webelements   xpath=//table[@ng-model="item.deliveryDate.endDate"]/.//input[@ng-change="updateHours()"]
-  \   Input Text    ${end_date_hours[-1]}       ${end_hours}
-  \   ${end_date_minutes}=    Get Webelements   xpath=//table[@ng-model="item.deliveryDate.endDate"]/.//input[@ng-change="updateMinutes()"]
-  \   Input Text    ${end_date_minutes[-1]}     ${end_minutes}
-  \   Sleep     2
+# :TODO Uncomment below fields after IDs will be corrected
+#  \   Execute Javascript    window.document.getElementById('end-date-delivery${INDEX}').removeAttribute("readonly")
+#  \   Input Text    xpath=//input[@id="end-date-delivery${INDEX}"]     ${end_date_date}
+#  \   ${end_date_hours}=      Get Webelements   xpath=//table[@ng-model="item.deliveryDate.endDate"]/.//input[@ng-change="updateHours()"]
+#  \   Input Text    ${end_date_hours[-1]}       ${end_hours}
+#  \   ${end_date_minutes}=    Get Webelements   xpath=//table[@ng-model="item.deliveryDate.endDate"]/.//input[@ng-change="updateMinutes()"]
+#  \   Input Text    ${end_date_minutes[-1]}     ${end_minutes}
+#  \   Sleep     2
 
   # Add new item
   \   Run Keyword If    ${INDEX} < ${NUMBER_OF_ITEMS} - 1   add_cross_press
   \   Sleep     2
 
 add_cross_press
-  ${cross}=    Get Webelements    xpath=//a[@ng-click="addField()"]
+  ${cross}=    Get Webelements    xpath=//button[@ng-click="vm.addItem()"]
   Focus     ${cross[-1]}
   Sleep     1
   Click Element     ${cross[-1]}
@@ -746,6 +754,34 @@ Set DKPP
   \   Sleep     1
   \   Click Element                      id=select-classifier-btn
   \   Sleep     2
+
+# Filling the Delivery info Pop-up
+Fill The Delivery Fields
+  [Arguments]   ${deliveryaddress_countryname}  ${deliveryaddress_postalcode}  ${deliveryaddress_region}   ${deliveryaddress_locality}   ${deliveryaddress_streetaddress}
+  Focus                 xpath=//input[contains(@id, 'deliveryAddress-')]
+  Click Element         xpath=//input[contains(@id, 'deliveryAddress-')]
+  : FOR   ${INDEX}   IN RANGE    1    30
+  \   Log To Console   .   no_newline=true
+  \   Sleep     2
+  \   ${count}=   Get Matching Xpath Count   xpath=//md-radio-button[@aria-label="Відповідно до документації"]
+  \   Exit For Loop If   '${count}' > '0'
+  # :TODO Fix the IDs in UI and change them here, and uncomment necessary
+#  Click Element                      id=deliveryAddress${INDEX}
+#  Wait Until Page Contains Element   xpath=//input[@name="postal-code"]   20
+#  Sleep     2
+#  Input Text                         xpath=//input[@name="country_name"]      ${deliveryaddress_countryname}
+#  Input Text                         xpath=//input[@name="postal-code"]       ${deliveryaddress_postalcode}
+#  Input Text                         xpath=//input[@name="delivery-region"]   ${deliveryaddress_region}
+#  Input Text                         xpath=//input[@name="company-city"]      ${deliveryaddress_locality}
+#  Input Text                         xpath=//input[@name="street_address"]    ${deliveryaddress_streetaddress}
+#  Sleep     2
+
+  Click Element        xpath=//md-radio-button[@aria-label="Відповідно до документації"]
+
+  Click Element        xpath=//button[@ng-click="vm.save()"]
+  Sleep     4
+
+
 
 Завантажити документ
   [Arguments]  @{ARGUMENTS}
