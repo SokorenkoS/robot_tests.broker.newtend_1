@@ -404,7 +404,7 @@ set_dk_dkpp
 
   # :TODO Create separate words for getting data for Item and Lot according to procedure.
 #  ${start_date}=           Get From Dictionary   ${ARGUMENTS[1].data.tenderPeriod}    startDate
-  ${end_date}=     Run Keyword If    '${procurementMethodType}' in ['defense', 'aboveThresholdEU', 'aboveThresholdUA']  Get From Dictionary   ${ARGUMENTS[1].data.tenderPeriod}    endDate
+  ${end_date}=     Run Keyword If    '${procurementMethodType}' in ['belowThreshold', 'defense', 'aboveThresholdEU', 'aboveThresholdUA']  Get From Dictionary   ${ARGUMENTS[1].data.tenderPeriod}    endDate
 #  ${enquiry_start_date}=   Get From Dictionary   ${ARGUMENTS[1].data.enquiryPeriod}   startDate
 #  ${enquiry_end_date}=     Get From Dictionary   ${ARGUMENTS[1].data.enquiryPeriod}   endDate
 
@@ -471,8 +471,8 @@ set_dk_dkpp
   # Filling the Main Procurement category
   ${procurementCategory}=           Run Keyword If   '${procurementMethodType}' in ['belowThreshold']   Get From Dictionary   ${ARGUMENTS[1].data}   mainProcurementCategory
   ${procurementCategory_field}=     Run Keyword If   '${procurementMethodType}' in ['belowThreshold']   Get Webelement        id=mainProcurementCategory
-  ${procurementCategory_click}=     Run Keyword If   '${procurementMethodType}' in ['belowThreshold']   Click Element         ${procurementCategory_field}
-  ${procurementCategory_select}=    Run Keyword If   '${procurementMethodType}' in ['belowThreshold']   Select From List By Value   ${procurementCategory}
+  # ${procurementCategory_click}=     Run Keyword If   '${procurementMethodType}' in ['belowThreshold']   Click Element         ${procurementCategory_field}
+  Run Keyword If   '${procurementMethodType}' in ['belowThreshold']   Select From List By Value   ${procurementCategory_field}   ${procurementCategory}
 
 #  Run Keyword If    '${TENDER_MEAT}' != 'False'    Add meats to tender   ${ARGUMENTS[1]}
 #  Run Keyword If    '${LOT_MEAT}' != 'False'       Add meats to lot      ${ARGUMENTS[1]}
@@ -484,8 +484,8 @@ set_dk_dkpp
   ${tenderingEnd_minutes}=    Run Keyword If    '${procurementMethodType}' in ['belowThreshold', 'defense', 'aboveThresholdEU', 'aboveThresholdUA']  Get Substring   ${end_date}   14   16
 
 # Removing READONLY attribute from datepicker field
-  Run Keyword If   '${procurementMethodType}' in ['belowThreshold', 'defense', 'aboveThresholdEU', 'aboveThresholdUA']   Execute Javascript    window.document.getElementById('end-date-registration').removeAttribute("readonly")
-  Run Keyword If   '${procurementMethodType}' in ['belowThreshold', 'defense', 'aboveThresholdEU', 'aboveThresholdUA']   Input Text    xpath=//input[@id="end-date-registration"]     ${tenderingEnd_date_date}
+  Run Keyword If   '${procurementMethodType}' in ['belowThreshold', 'defense', 'aboveThresholdEU', 'aboveThresholdUA']   Execute Javascript    window.document.getElementById('input-date-tender-enquiryPeriod-endDate').removeAttribute("readonly")
+  Run Keyword If   '${procurementMethodType}' in ['belowThreshold', 'defense', 'aboveThresholdEU', 'aboveThresholdUA']   Input Text    xpath=//input[@id="input-date-tender-enquiryPeriod-endDate"]     ${tenderingEnd_date_date}
   ${tenderingEnd_date_hours}=    Run Keyword If    '${procurementMethodType}' in ['belowThreshold', 'defense', 'aboveThresholdEU', 'aboveThresholdUA']   Get Webelements   xpath=//table[@ng-model="tender.tenderPeriod.endDate"]/.//input[@ng-change="updateHours()"]
   Run Keyword If   '${procurementMethodType}' in ['belowThreshold', 'defense', 'aboveThresholdEU', 'aboveThresholdUA']   Input Text    ${tenderingEnd_date_hours[-1]}       ${tenderingEnd_hours}
   ${tenderingEnd_date_minutes}=  Run Keyword If    '${procurementMethodType}' in ['belowThreshold', 'defense', 'aboveThresholdEU', 'aboveThresholdUA']  Get Webelements   xpath=//table[@ng-model="tender.tenderPeriod.endDate"]/.//input[@ng-change="updateMinutes()"]
@@ -664,7 +664,6 @@ Lot Dict
 
 # Set CPV
   \   Wait Until Page Contains Element   xpath=//input[contains(@id,'classifier-cpv-')]   5
-  #    [@id^="classifier-dkpp"]  5
   \   Click Element                      xpath=//input[contains(@id,'classifier-cpv-')]
 #  \   Click Element                      id=classifier-1-${INDEX}
 
